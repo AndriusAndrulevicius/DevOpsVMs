@@ -1,27 +1,26 @@
 #usage initbuildagent.ps1
 param
 (
-    [string] $templateLink              = "https://raw.githubusercontent.com/Microsoft/nav-arm-templates/master/buildagent.json",
-    [Parameter(Mandatory=$true)]
+    [string] $templateLink = "https://raw.githubusercontent.com/Microsoft/nav-arm-templates/master/buildagent.json",
+    [Parameter(Mandatory = $true)]
     [string] $vmAdminUsername,
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string] $adminPassword,
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string] $devopsorganization,
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string] $personalaccesstoken,
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string] $pool,
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string] $vstsAgentUrl,
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [string] $finalSetupScriptUrl,
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string] $vmname
 )
 
-function Download-File([string]$sourceUrl, [string]$destinationFile)
-{
+function Get-WebFile([string]$sourceUrl, [string]$destinationFile) {
     Remove-Item -Path $destinationFile -Force -ErrorAction Ignore
     (New-Object System.Net.WebClient).DownloadFile($sourceUrl, $destinationFile)
 }
@@ -49,9 +48,9 @@ if ($installDocker) {
 $DownloadFolder = "C:\Download"
 MkDir $DownloadFolder -ErrorAction Ignore | Out-Null
 
-$agentFilename = $vstsAgentUrl.Substring($vstsAgentUrl.LastIndexOf('/')+1)
+$agentFilename = $vstsAgentUrl.Substring($vstsAgentUrl.LastIndexOf('/') + 1)
 $agentFullname = Join-Path $DownloadFolder $agentFilename
-Download-File -sourceUrl $vstsAgentUrl -destinationFile $agentFullname
+Get-WebFile -sourceUrl $vstsAgentUrl -destinationFile $agentFullname
 $agentFolder = "C:\Agent"
 mkdir $agentFolder -ErrorAction Ignore | Out-Null
 cd $agentFolder
@@ -66,7 +65,7 @@ if ($installDocker) {
 
 if ($finalSetupScriptUrl) {
     $finalSetupScript = Join-Path $DownloadFolder "FinalSetupScript.ps1"
-    Download-File -sourceUrl $finalSetupScriptUrl -destinationFile $finalSetupScript
+    Get-WebFile -sourceUrl $finalSetupScriptUrl -destinationFile $finalSetupScript
     . $finalSetupScript
 }
 

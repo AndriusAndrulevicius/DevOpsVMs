@@ -1,6 +1,4 @@
-﻿. (Join-Path $PSScriptRoot "Install-VS2017Community.ps1")
-
-try {
+﻿try {
     $Folder = "C:\DOWNLOAD\AdobeReader"
     $Filename = "$Folder\AdbeRdr11010_en_US.exe"
     New-Item $Folder -itemtype directory -ErrorAction ignore | Out-Null
@@ -15,6 +13,7 @@ try {
     Start-Process $Filename -ArgumentList "/msi /qn" -Wait -Passthru | Out-Null
     Start-Sleep -Seconds 10
 
-} catch {
+}
+catch {
     Log -color Red -line ($Error[0].ToString() + " (" + ($Error[0].ScriptStackTrace -split '\r\n')[0] + ")")
 }

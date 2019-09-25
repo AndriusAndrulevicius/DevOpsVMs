@@ -53,7 +53,7 @@
             "defaultValue": "4.0"
         },
         "ContactEMailForLetsEncrypt": {
-		    "type": "string",
+            "type": "string",
             "defaultValue": "",
             "metadata": {
                 "Description": "Optional: Specify the email address of the person accepting subscriber agreement for LetsEncrypt here https://letsencrypt.org/repository/. Leave empty for using self-signed certificate."

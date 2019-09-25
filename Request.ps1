@@ -4,14 +4,15 @@
 
 if (!(Test-Path function:Log)) {
     function Log([string]$line, [string]$color = "Gray") {
-        ("<font color=""$color"">" + [DateTime]::Now.ToString([System.Globalization.DateTimeFormatInfo]::CurrentInfo.ShortTimePattern.replace(":mm",":mm:ss")) + " $line</font>") | Add-Content -Path "c:\demo\status.txt"
+        ("<font color=""$color"">" + [DateTime]::Now.ToString([System.Globalization.DateTimeFormatInfo]::CurrentInfo.ShortTimePattern.replace(":mm", ":mm:ss")) + " $line</font>") | Add-Content -Path "c:\demo\status.txt"
         Write-Host -ForegroundColor $color $line 
     }
 }
 
 if (Test-Path -Path "C:\demo\navcontainerhelper-dev\NavContainerHelper.psm1") {
     Import-module "C:\demo\navcontainerhelper-dev\NavContainerHelper.psm1" -DisableNameChecking
-} else {
+}
+else {
     Import-Module -name navcontainerhelper -DisableNameChecking
 }
 
@@ -24,7 +25,7 @@ if ($event) {
         $request = $_
         $idx = $request.IndexOf("?")
         if ($idx -gt 0) {
-            $id = $request.Substring(0,$idx)
+            $id = $request.Substring(0, $idx)
             Start-Transcript -Path "c:\demo\request\$id.txt" 
             $request = $request.Substring($idx)
         }
@@ -33,10 +34,10 @@ if ($event) {
 
         $token = $QueryParameters.Get("requesttoken")
         $cmd = $QueryParameters.Get("cmd")
-
+        # TODO: check
         if ("$token".Equals("$requestToken")) {
             $LogStr = "$cmd"
-            $Parameters = @{}
+            $Parameters = @{ }
             $queryParameters.Keys | ForEach-Object {
                 if ($_ -ne "cmd" -and "$_" -ne "requesttoken") {
                     $logStr += " -$_ '$($queryParameters[$_])'"
@@ -47,16 +48,19 @@ if ($event) {
             if (($script) -and ($script.FullName.ToLowerInvariant().StartsWith("c:\demo\request\"))) {
                 Log "Request: $LogStr"
                 . $script @Parameters
-            } else {
+            }
+            else {
                 Log "Illegal request: $LogStr"
             }
-        } else {
+        }
+        else {
             Log "Illegal RequestToken"
         }
         if ($idx -gt 0) {
             Stop-Transcript
         }
     }
-} else {
+}
+else {
     Log "No Event found with event ID $eventId"
 }

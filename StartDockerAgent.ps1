@@ -31,7 +31,7 @@ while ($true) {
     if (!($message)) {
         break
     }
-    $transcriptname = ([Guid]::NewGuid().ToString()+".txt")
+    $transcriptname = ([Guid]::NewGuid().ToString() + ".txt")
     $transcriptfilename = "c:\agent\$transcriptname"
     $transcripting = $false
     try {
@@ -43,16 +43,16 @@ while ($true) {
         $navDockerPath = Join-Path $tempFolder "nav-docker-master"
         $json = $message.AsString | ConvertFrom-Json
         $ht = @{ "vmName" = $vmName
-                 "Queue" = $queue
-                 "Task" = $json.task
-                 "navversion" = $json.navversion
-                 "cu" = $json.cu
-                 "Country" = $json.country
-                 "Dequeue" = $message.DequeueCount
-                 "version" = $json.version
-                 "transcript" = ""
-               }
-        Add-StorageTableRow -table $table -partitionKey $AgentName -rowKey ([string]::Format("{0:D19}", [DateTime]::MaxValue.Ticks - [DateTime]::UtcNow.Ticks)) -property (@{"Status" = "Build"} + $ht) | Out-Null
+            "Queue"       = $queue
+            "Task"        = $json.task
+            "navversion"  = $json.navversion
+            "cu"          = $json.cu
+            "Country"     = $json.country
+            "Dequeue"     = $message.DequeueCount
+            "version"     = $json.version
+            "transcript"  = ""
+        }
+        Add-StorageTableRow -table $table -partitionKey $AgentName -rowKey ([string]::Format("{0:D19}", [DateTime]::MaxValue.Ticks - [DateTime]::UtcNow.Ticks)) -property (@{"Status" = "Build" } + $ht) | Out-Null
         Start-Transcript -Path $transcriptfilename
         $transcripting = $true
         Write-Host '---------------------------'
@@ -65,10 +65,11 @@ while ($true) {
         Set-AzureStorageBlobContent -File $transcriptfilename -Context $storageContext -Container $json.blobcontainer -Blob $transcriptname -Force | Out-Null
         $ht.transcript = "https://$StorageAccountName.blob.core.windows.net/$($json.blobContainer)/$transcriptname"
 
-        Add-StorageTableRow -table $table -partitionKey $AgentName -rowKey ([string]::Format("{0:D19}", [DateTime]::MaxValue.Ticks - [DateTime]::UtcNow.Ticks)) -property (@{"Status" = "Success"} + $ht) | Out-Null
+        Add-StorageTableRow -table $table -partitionKey $AgentName -rowKey ([string]::Format("{0:D19}", [DateTime]::MaxValue.Ticks - [DateTime]::UtcNow.Ticks)) -property (@{"Status" = "Success" } + $ht) | Out-Null
         $azureQueue.CloudQueue.DeleteMessage($message)
         . (Join-Path $navDockerPath "$($json.task)\cleanup.ps1") -Context $storageContext -json $json
-    } catch {
+    }
+    catch {
         if ($transcripting) {
             Stop-Transcript
         }
@@ -77,14 +78,16 @@ while ($true) {
         $ht.transcript = "https://$StorageAccountName.blob.core.windows.net/$($json.blobContainer)/$transcriptname"
         
         if ($message.DequeueCount -eq 10) {
-            Add-StorageTableRow -table $table -partitionKey $AgentName -rowKey ([string]::Format("{0:D19}", [DateTime]::MaxValue.Ticks - [DateTime]::UtcNow.Ticks)) -property (@{"Status" = "Fail"} + $ht) | Out-Null
+            Add-StorageTableRow -table $table -partitionKey $AgentName -rowKey ([string]::Format("{0:D19}", [DateTime]::MaxValue.Ticks - [DateTime]::UtcNow.Ticks)) -property (@{"Status" = "Fail" } + $ht) | Out-Null
             $azureQueue.CloudQueue.DeleteMessage($message)
             . (Join-Path $navDockerPath "$($json.task)\cleanup.ps1") -Context $storageContext -json $json
-        } else {
-            Add-StorageTableRow -table $table -partitionKey $AgentName -rowKey ([string]::Format("{0:D19}", [DateTime]::MaxValue.Ticks - [DateTime]::UtcNow.Ticks)) -property (@{"Status" = "Retry"} + $ht) | Out-Null
+        }
+        else {
+            Add-StorageTableRow -table $table -partitionKey $AgentName -rowKey ([string]::Format("{0:D19}", [DateTime]::MaxValue.Ticks - [DateTime]::UtcNow.Ticks)) -property (@{"Status" = "Retry" } + $ht) | Out-Null
             Start-Sleep -Seconds 60
         }
-    } finally {
+    }
+    finally {
         Remove-Item -Path $tempFolder -Recurse -Force -ErrorAction Ignore
         Remove-Item -Path $tempFile -Force -ErrorAction Ignore
         Remove-Item -Path $transcriptfilename -Force -ErrorAction Ignore

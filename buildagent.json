@@ -4,21 +4,21 @@
     "parameters": {
         "vmName": {
             "type": "string",
-			"defaultValue": "",
+            "defaultValue": "",
             "minLength": 3,
-            "maxLength": 15,            
+            "maxLength": 15,
             "metadata": {
                 "Description": "Select the name of the deployment"
             }
         },
         "RemoteDesktopAccess": {
-		    "type": "string",
-			"defaultValue": "",
+            "type": "string",
+            "defaultValue": "",
             "minLength": 1,
             "metadata": {
                 "Description": "Specify * (star) to allow all remote desktop access, specify - (minus) to deny all remote desktop access or provide an address range using CIDR notation, e.g. 10.0.0.0/24; an IP address; or a list of address ranges or IP addresses"
             }
-		},
+        },
         "OperatingSystem": {
             "type": "string",
             "defaultValue": "Windows Server 2019 with Containers",
@@ -130,7 +130,10 @@
         "virtualNetworkName": "virtualnetwork",
         "server1Name": "[tolower(variables('vmName'))]",
         "nic1Name": "[concat(variables('vmName'),'_nic')]",
-        "delimiters": [ ",", ";" ],
+        "delimiters": [
+            ",",
+            ";"
+        ],
         "RdpAddresses": "[if(equals(variables('RemoteDesktopAccess'),'-'),'',variables('RemoteDesktopAccess'))]",
         "rdpSourceAddressPrefix": "[split(variables('RdpAddresses'),variables('delimiters'))]",
         "noOfAddresses": "[length(variables('rdpSourceAddressPrefix'))]",
@@ -166,80 +169,79 @@
             "name": "[variables('networkSecurityGroupName')]",
             "location": "[resourceGroup().location]",
             "properties": {
-                "securityRules": [
-                ]
+                "securityRules": []
             }
         },
-		{
-			"apiVersion": "2015-01-01",
-			"type": "Microsoft.Resources/deployments",
-			"name": "rdp-0",
-			"condition": "[not(equals(variables('RemoteDesktopAccess'),'-'))]",
-			"dependsOn": [
-				"[concat('Microsoft.Network/networkSecurityGroups/',variables('networkSecurityGroupName'))]"
-			],
-			"properties": {
-				"mode":"Incremental",
-				"parameters":{},
-				"template": {
-					"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-					"contentVersion": "1.0.0.0",
-					"parameters": {},
-					"variables": {},
-					"resources": [],
-					"outputs": {}
-				}
-			}
-		},       
-		{
-			"apiVersion": "2015-01-01",
-			"type": "Microsoft.Resources/deployments",
-			"name": "[concat('rdp-', copyIndex(1))]",
-			"condition": "[not(equals(variables('RemoteDesktopAccess'),'-'))]",
-			"dependsOn": [
-				"[concat('rdp-', copyIndex())]"
-			],
-			"copy": {
-				"name": "iterator",
-				"count": "[variables('noOfAddresses')]"
-			},
-			"properties": {
-				"mode": "Incremental",
-				"template": {
-					"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-					"contentVersion": "1.0.0.0",
-					"parameters": {},
-					"variables": {},
-					"resources": [
-						{
-							"apiVersion": "2016-09-01",
-							"name": "[concat(variables('networkSecurityGroupName'),'/Rdp',copyIndex())]",
-							"type": "Microsoft.Network/networkSecurityGroups/securityRules",
-							"location":"[resourceGroup().location]",
-							"properties":{
-								"description": "Remote Desktop Access",
-								"protocol": "Tcp",
-								"sourcePortRange": "*",
-								"destinationPortRange": "3389",
-								"sourceAddressPrefix": "[variables('rdpSourceAddressPrefix')[copyIndex()]]",
-								"destinationAddressPrefix": "*",
-								"access": "Allow",
-								"priority": "[add(copyIndex(),100)]",
-								"direction": "Inbound"
-							}
-						}
-					],
-					"outputs": {}
-				}
-			}
-		},
+        {
+            "apiVersion": "2015-01-01",
+            "type": "Microsoft.Resources/deployments",
+            "name": "rdp-0",
+            "condition": "[not(equals(variables('RemoteDesktopAccess'),'-'))]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkSecurityGroups/',variables('networkSecurityGroupName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {},
+                "template": {
+                    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {},
+                    "variables": {},
+                    "resources": [],
+                    "outputs": {}
+                }
+            }
+        },
+        {
+            "apiVersion": "2015-01-01",
+            "type": "Microsoft.Resources/deployments",
+            "name": "[concat('rdp-', copyIndex(1))]",
+            "condition": "[not(equals(variables('RemoteDesktopAccess'),'-'))]",
+            "dependsOn": [
+                "[concat('rdp-', copyIndex())]"
+            ],
+            "copy": {
+                "name": "iterator",
+                "count": "[variables('noOfAddresses')]"
+            },
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {},
+                    "variables": {},
+                    "resources": [
+                        {
+                            "apiVersion": "2016-09-01",
+                            "name": "[concat(variables('networkSecurityGroupName'),'/Rdp',copyIndex())]",
+                            "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                            "location": "[resourceGroup().location]",
+                            "properties": {
+                                "description": "Remote Desktop Access",
+                                "protocol": "Tcp",
+                                "sourcePortRange": "*",
+                                "destinationPortRange": "3389",
+                                "sourceAddressPrefix": "[variables('rdpSourceAddressPrefix')[copyIndex()]]",
+                                "destinationAddressPrefix": "*",
+                                "access": "Allow",
+                                "priority": "[add(copyIndex(),100)]",
+                                "direction": "Inbound"
+                            }
+                        }
+                    ],
+                    "outputs": {}
+                }
+            }
+        },
         {
             "apiVersion": "2015-05-01-preview",
             "type": "Microsoft.Network/virtualNetworks",
             "name": "[variables('virtualNetworkName')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-				"[concat('Microsoft.Network/networkSecurityGroups/',variables('networkSecurityGroupName'))]"
+                "[concat('Microsoft.Network/networkSecurityGroups/',variables('networkSecurityGroupName'))]"
             ],
             "properties": {
                 "addressSpace": {
@@ -331,8 +333,7 @@
                     ]
                 }
             },
-            "resources": [
-            ]
+            "resources": []
         },
         {
             "apiVersion": "2015-06-15",
@@ -360,6 +361,5 @@
             }
         }
     ],
-    "outputs": {
-    }
+    "outputs": {}
 }

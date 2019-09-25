@@ -4,26 +4,27 @@
     "parameters": {
         "vmName": {
             "type": "string",
-			"defaultValue": "",
+            "defaultValue": "",
             "minLength": 3,
             "metadata": {
                 "Description": "Select the name of the deployment"
             }
         },
         "RemoteDesktopAccess": {
-		    "type": "string",
-			"defaultValue": "",
+            "type": "string",
+            "defaultValue": "",
             "minLength": 1,
             "metadata": {
                 "Description": "Specify * (star) to allow all remote desktop access, specify - (minus) to deny all remote desktop access or provide an address range using CIDR notation, e.g. 10.0.0.0/24; an IP address; or a list of address ranges or IP addresses"
             }
-		},
+        },
         "OperatingSystem": {
             "type": "string",
             "defaultValue": "Windows Server 2019",
             "allowedValues": [
                 "Windows Server 2019",
-                "Windows Server 2016"            ],
+                "Windows Server 2016"
+            ],
             "metadata": {
                 "Description": "Select the Operating System of the VM"
             }
@@ -95,84 +96,84 @@
         },
         "Registry1": {
             "type": "string",
-			"defaultValue": "",
+            "defaultValue": "",
             "metadata": {
                 "Description": "Specify a registry (#1) to login to (blank for docker hub)"
             }
         },
         "Registry1UserName": {
             "type": "string",
-			"defaultValue": "",
+            "defaultValue": "",
             "metadata": {
                 "Description": "Specify the registry (#1) User Name (blank for no login)"
             }
         },
         "Registry1Password": {
             "type": "securestring",
-			"defaultValue": "",
+            "defaultValue": "",
             "metadata": {
                 "Description": "Specify the registry (#1) Password"
             }
         },
         "Registry2": {
             "type": "string",
-			"defaultValue": "",
+            "defaultValue": "",
             "metadata": {
                 "Description": "Specify a registry (#2) to login to (blank for docker hub)"
             }
         },
         "Registry2UserName": {
             "type": "string",
-			"defaultValue": "",
+            "defaultValue": "",
             "metadata": {
                 "Description": "Specify the registry (#2) User Name (blank for no login)"
             }
         },
         "Registry2Password": {
             "type": "securestring",
-			"defaultValue": "",
+            "defaultValue": "",
             "metadata": {
                 "Description": "Specify the  registry (#2) Password"
             }
         },
         "Registry3": {
             "type": "string",
-			"defaultValue": "",
+            "defaultValue": "",
             "metadata": {
                 "Description": "Specify a registry (#3) to login to (blank for docker hub)"
             }
         },
         "Registry3UserName": {
             "type": "string",
-			"defaultValue": "",
+            "defaultValue": "",
             "metadata": {
                 "Description": "Specify the registry (#3) User Name (blank for no login)"
             }
         },
         "Registry3Password": {
             "type": "securestring",
-			"defaultValue": "",
+            "defaultValue": "",
             "metadata": {
                 "Description": "Specify the registry (#3) Password"
             }
         },
         "Registry4": {
             "type": "string",
-			"defaultValue": "",
+            "defaultValue": "",
             "metadata": {
                 "Description": "Specify a registry (#4) to login to (blank for docker hub)"
             }
         },
         "Registry4UserName": {
             "type": "string",
-			"defaultValue": "",
+            "defaultValue": "",
             "metadata": {
                 "Description": "Specify the registry (#4) User Name (blank for no login)"
             }
         },
         "Registry4Password": {
             "type": "securestring",
-			"defaultValue": "",
+            "defaultValue": "",
             "metadata": {
                 "Description": "Specify the registry (#4) Password"
             }
@@ -196,7 +197,10 @@
         "subnetName": "Subnet",
         "subnetPrefix": "10.0.0.0/24",
         "virtualNetworkName": "virtualnetwork",
-        "delimiters": [ ",", ";" ],
+        "delimiters": [
+            ",",
+            ";"
+        ],
         "RdpAddresses": "[if(equals(variables('RemoteDesktopAccess'),'-'),'',variables('RemoteDesktopAccess'))]",
         "rdpSourceAddressPrefix": "[split(variables('RdpAddresses'),variables('delimiters'))]",
         "noOfAddresses": "[length(variables('rdpSourceAddressPrefix'))]",
@@ -229,9 +233,9 @@
                     "domainNameLabel": "[concat(variables('vmName'),'-',copyIndex())]"
                 }
             },
-			"copy": {
-				"name": "pipcopy",
-				"count": "[parameters('count')]"
+            "copy": {
+                "name": "pipcopy",
+                "count": "[parameters('count')]"
             }
         },
         {
@@ -240,80 +244,79 @@
             "name": "[variables('networkSecurityGroupName')]",
             "location": "[resourceGroup().location]",
             "properties": {
-                "securityRules": [
-                ]
+                "securityRules": []
             }
         },
-		{
-			"apiVersion": "2015-01-01",
-			"type": "Microsoft.Resources/deployments",
-			"name": "rdp-0",
-			"condition": "[not(equals(variables('RemoteDesktopAccess'),'-'))]",
-			"dependsOn": [
-				"[concat('Microsoft.Network/networkSecurityGroups/',variables('networkSecurityGroupName'))]"
-			],
-			"properties": {
-				"mode":"Incremental",
-				"parameters":{},
-				"template": {
-					"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-					"contentVersion": "1.0.0.0",
-					"parameters": {},
-					"variables": {},
-					"resources": [],
-					"outputs": {}
-				}
-			}
-		},       
-		{
-			"apiVersion": "2015-01-01",
-			"type": "Microsoft.Resources/deployments",
-			"name": "[concat('rdp-', copyIndex(1))]",
-			"condition": "[not(equals(variables('RemoteDesktopAccess'),'-'))]",
-			"dependsOn": [
-				"[concat('rdp-', copyIndex())]"
-			],
-			"copy": {
-				"name": "iterator",
-				"count": "[variables('noOfAddresses')]"
-			},
-			"properties": {
-				"mode": "Incremental",
-				"template": {
-					"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-					"contentVersion": "1.0.0.0",
-					"parameters": {},
-					"variables": {},
-					"resources": [
-						{
-							"apiVersion": "2016-09-01",
-							"name": "[concat(variables('networkSecurityGroupName'),'/Rdp',copyIndex())]",
-							"type": "Microsoft.Network/networkSecurityGroups/securityRules",
-							"location":"[resourceGroup().location]",
-							"properties":{
-								"description": "Remote Desktop Access",
-								"protocol": "Tcp",
-								"sourcePortRange": "*",
-								"destinationPortRange": "3389",
-								"sourceAddressPrefix": "[variables('rdpSourceAddressPrefix')[copyIndex()]]",
-								"destinationAddressPrefix": "*",
-								"access": "Allow",
-								"priority": "[add(copyIndex(),100)]",
-								"direction": "Inbound"
-							}
-						}
-					],
-					"outputs": {}
-				}
-			}
-		},
+        {
+            "apiVersion": "2015-01-01",
+            "type": "Microsoft.Resources/deployments",
+            "name": "rdp-0",
+            "condition": "[not(equals(variables('RemoteDesktopAccess'),'-'))]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkSecurityGroups/',variables('networkSecurityGroupName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {},
+                "template": {
+                    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {},
+                    "variables": {},
+                    "resources": [],
+                    "outputs": {}
+                }
+            }
+        },
+        {
+            "apiVersion": "2015-01-01",
+            "type": "Microsoft.Resources/deployments",
+            "name": "[concat('rdp-', copyIndex(1))]",
+            "condition": "[not(equals(variables('RemoteDesktopAccess'),'-'))]",
+            "dependsOn": [
+                "[concat('rdp-', copyIndex())]"
+            ],
+            "copy": {
+                "name": "iterator",
+                "count": "[variables('noOfAddresses')]"
+            },
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {},
+                    "variables": {},
+                    "resources": [
+                        {
+                            "apiVersion": "2016-09-01",
+                            "name": "[concat(variables('networkSecurityGroupName'),'/Rdp',copyIndex())]",
+                            "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                            "location": "[resourceGroup().location]",
+                            "properties": {
+                                "description": "Remote Desktop Access",
+                                "protocol": "Tcp",
+                                "sourcePortRange": "*",
+                                "destinationPortRange": "3389",
+                                "sourceAddressPrefix": "[variables('rdpSourceAddressPrefix')[copyIndex()]]",
+                                "destinationAddressPrefix": "*",
+                                "access": "Allow",
+                                "priority": "[add(copyIndex(),100)]",
+                                "direction": "Inbound"
+                            }
+                        }
+                    ],
+                    "outputs": {}
+                }
+            }
+        },
         {
             "apiVersion": "2015-05-01-preview",
             "type": "Microsoft.Network/virtualNetworks",
             "name": "[variables('virtualNetworkName')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-				"[concat('Microsoft.Network/networkSecurityGroups/',variables('networkSecurityGroupName'))]"
+                "[concat('Microsoft.Network/networkSecurityGroups/',variables('networkSecurityGroupName'))]"
             ],
             "properties": {
                 "addressSpace": {
@@ -342,7 +345,7 @@
             "dependsOn": [
                 "[concat('Microsoft.Network/publicIPAddresses/', variables('vmName'),'-',copyIndex(),'_pip')]",
                 "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
-				"[concat('Microsoft.Network/networkSecurityGroups/',variables('networkSecurityGroupName'))]"
+                "[concat('Microsoft.Network/networkSecurityGroups/',variables('networkSecurityGroupName'))]"
             ],
             "properties": {
                 "networkSecurityGroup": {
@@ -363,9 +366,9 @@
                     }
                 ]
             },
-			"copy": {
-				"name": "niccopy",
-				"count":  "[parameters('count')]"
+            "copy": {
+                "name": "niccopy",
+                "count": "[parameters('count')]"
             }
         },
         {
@@ -402,7 +405,7 @@
                         "name": "[concat(variables('vmName'),'-',copyIndex(),'_osdisk')]",
                         "caching": "ReadWrite",
                         "managedDisk": {
-                          "storageAccountType": "[variables('storageAccountType')]"
+                            "storageAccountType": "[variables('storageAccountType')]"
                         },
                         "diskSizeGB": 1023
                     }
@@ -415,12 +418,11 @@
                     ]
                 }
             },
-            "resources": [
-            ],
+            "resources": [],
             "copy": {
-				"name": "vmcopy",
-				"count": "[parameters('count')]"
-			}
+                "name": "vmcopy",
+                "count": "[parameters('count')]"
+            }
         },
         {
             "apiVersion": "2015-06-15",
@@ -446,12 +448,11 @@
                 },
                 "protectedSettings": {}
             },
-			"copy": {
-				"name" : "copyext",
-				"count" : "[parameters('count')]"
-			}
+            "copy": {
+                "name": "copyext",
+                "count": "[parameters('count')]"
+            }
         }
     ],
-    "outputs": {
-    }
+    "outputs": {}
 }

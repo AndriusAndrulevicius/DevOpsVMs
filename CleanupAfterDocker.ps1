@@ -83,9 +83,11 @@ if ($ImagesToDownload) {
         if ($_.EndsWith('-ltsc2016') -or $_.EndsWith('-1709') -or $_.EndsWith('-1803') -or $_.EndsWith('-ltsc2019') -or
             $_.EndsWith(':ltsc2016') -or $_.EndsWith(':1709') -or $_.EndsWith(':1803') -or $_.EndsWith(':ltsc2019')) {
             $imageName = $_
-        } elseif ($_.Contains(':')) {
+        }
+        elseif ($_.Contains(':')) {
             $imageName = "$($_)-$os"
-        } else {
+        }
+        else {
             $imageName = "$($_):$os"
         }
         Write-Host "Pulling $imageName"

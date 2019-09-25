@@ -1,6 +1,6 @@
 ﻿if (!(Test-Path function:Log)) {
   function Log([string]$line, [string]$color = "Gray") {
-    ("<font color=""$color"">" + [DateTime]::Now.ToString([System.Globalization.DateTimeFormatInfo]::CurrentInfo.ShortTimePattern.replace(":mm",":mm:ss")) + " $line</font>") | Add-Content -Path "c:\demo\status.txt"
+    ("<font color=""$color"">" + [DateTime]::Now.ToString([System.Globalization.DateTimeFormatInfo]::CurrentInfo.ShortTimePattern.replace(":mm", ":mm:ss")) + " $line</font>") | Add-Content -Path "c:\demo\status.txt"
     Write-Host -ForegroundColor $color $line 
   }
 }
@@ -24,8 +24,8 @@ choco install office365business
 
 #Add VSCode Extensions
 "eamodio.gitlens", "ms-vscode.PowerShell", "heaths.vscode-guid", "github.vscode-pull-request-github", "formulahendry.docker-explorer" | % {
-    Log "Install VSCode Extension: $_"
-    code --install-extension $_
+  Log "Install VSCode Extension: $_"
+  code --install-extension $_
 }
 
 . "C:\DEMO\Settings.ps1"

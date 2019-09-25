@@ -25,8 +25,7 @@ Invoke-Command @sessionParam -ScriptBlock { Param($backupDir)
     $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
 
     Set-NavServerInstance -ServerInstance NAV -Stop
-    try
-    {
+    try {
         Write-Host "Taking database $DatabaseName offline"
         Invoke-SqlCmd -Query ("ALTER DATABASE [{0}] SET OFFLINE WITH ROLLBACK IMMEDIATE" -f $DatabaseName)
 
@@ -38,8 +37,7 @@ Invoke-Command @sessionParam -ScriptBlock { Param($backupDir)
             Copy-Item -Path $FileInfo.FullName -Destination $DestinationFile -Force
         }
     }
-    finally
-    {
+    finally {
         Write-Host "Putting database $DatabaseName back online"
         Invoke-SqlCmd -Query ("ALTER DATABASE [{0}] SET ONLINE" -f $DatabaseName)
 
