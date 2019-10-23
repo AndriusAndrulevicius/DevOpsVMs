@@ -16,7 +16,6 @@ param
     [string] $RunWindowsUpdate = "No",
     [string] $nchBranch = ""
 )
-
 function Get-VariableDeclaration([string]$name) {
     $var = Get-Variable -Name $name
     if ($var) {
@@ -36,6 +35,7 @@ function Get-WebFile([string]$sourceUrl, [string]$destinationFile) {
     Remove-Item -Path $destinationFile -Force -ErrorAction Ignore
     (New-Object System.Net.WebClient).DownloadFile($sourceUrl, $destinationFile)
 }
+Log -color Green "MY Starting initialization. Public Dns Name: $publicDnsName. Host Name: $hostName"
 
 if ($publicDnsName -eq "") {
     $publicDnsName = $hostname
@@ -76,18 +76,6 @@ else {
     ('$adminPassword = "' + $encPassword + '"') | Add-Content $settingsScript
 }
 
-#
-# styles:
-#   devpreview
-#   developer
-#   workshop
-#   sandbox
-#   demo
-#
-
-# TODO: not used?
-# $includeWindowsClient = $true
-
 if (Test-Path -Path "c:\DEMO\Status.txt" -PathType Leaf) {
     Log "VM already initialized."
     exit
@@ -97,7 +85,7 @@ Set-Content "c:\DEMO\RemoteDesktopAccess.txt" -Value $RemoteDesktopAccess
 
 Set-ExecutionPolicy -ExecutionPolicy unrestricted -Force
 
-Log -color Green "Starting initialization"
+Log -color Green "Starting initialization. Public Dns Name: $publicDnsName. Host Name: $hostName"
 Log "Running $WindowsProductName"
 Log "Initialize, user: $env:USERNAME"
 Log "TemplateLink: $templateLink"
@@ -127,38 +115,45 @@ Get-WebFile -sourceUrl "${scriptPath}web.config"              -destinationFile "
 
 $title = 'Dynamics Container Host'
 [System.IO.File]::WriteAllText("C:\inetpub\wwwroot\title.txt", $title)
-[System.IO.File]::WriteAllText("C:\inetpub\wwwroot\hostname.txt", $publicDnsName)
+# TODO: temp fix
+# [System.IO.File]::WriteAllText("C:\inetpub\wwwroot\hostname.txt", $publicDnsName)
+[System.IO.File]::WriteAllText("C:\inetpub\wwwroot\hostname.txt", $hostName)
 
+# TODO: temp fix
+# if ("$RemoteDesktopAccess" -ne "") {
+#     Log "Creating Connect.rdp"
+#     "full address:s:${publicDnsName}:3389
+# prompt for credentials:i:1
+# username:s:$vmAdminUsername" | Set-Content "c:\inetpub\wwwroot\Connect.rdp"
+# }
 if ("$RemoteDesktopAccess" -ne "") {
     Log "Creating Connect.rdp"
-    "full address:s:${publicDnsName}:3389
+    "full address:s:${hostName}:3389
 prompt for credentials:i:1
 username:s:$vmAdminUsername" | Set-Content "c:\inetpub\wwwroot\Connect.rdp"
 }
-
 if ($WindowsInstallationType -eq "Server") {
     Log "Turning off IE Enhanced Security Configuration"
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A7-37EF-4b3f-8CFC-4F3A74704073}" -Name "IsInstalled" -Value 0 | Out-Null
     Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A8-37EF-4b3f-8CFC-4F3A74704073}" -Name "IsInstalled" -Value 0 | Out-Null
+    Log "Disable Internet Explorer First Run Welcome Screen Pop Up"
+
+    if (!(Get-ItemProperty -Path "HKLM:\Software\Policies\Microsoft\Internet Explorer\Main\" -Name "DisableFirstRunCustomize")) {
+        New-Item -Path "HKLM:\Software\Policies\Microsoft\Internet Explorer\Main\" -Force | Out-Null
+    }
+    Set-ItemProperty -Path "Registry::HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Internet Explorer\Main" -Name "DisableFirstRunCustomize" -Value 2 | Out-Null
 }
 
 $setupDesktopScript = "c:\demo\SetupDesktop.ps1"
 $setupStartScript = "c:\demo\SetupStart.ps1"
 $setupVmScript = "c:\demo\SetupVm.ps1"
+$additionalInstall = "c:\demo\additional-install.ps1"
+$CreateAzureDevOpsAgent = "c:\demo\CreateAzureDevOpsAgent.ps1"
+
 # TODO: not used?
 # $setupAadScript = "c:\demo\SetupAAD.ps1"
 
-. "c:\run\SetupWindowsUsers.ps1"
-Write-Host "Creating Host Windows user"
-$hostUsername = "' + $vmAdminUsername + '"
-if (!($securePassword)) {
-    # old version of the generic nav container
-    $securePassword = ConvertTo-SecureString -String $password -AsPlainText -Force
-}
-New-LocalUser -AccountNeverExpires -FullName $hostUsername -Name $hostUsername -Password $securePassword -ErrorAction Ignore | Out-Null
-Add-LocalGroupMember -Group administrators -Member $hostUsername -ErrorAction Ignore
-Set-Content "c:\myfolder\SetupWindowsUsers.ps1"
-
+Log "Downloading files"
 Get-WebFile -sourceUrl "${scriptPath}SetupWebClient.ps1"    -destinationFile "c:\myfolder\SetupWebClient.ps1"
 
 Get-WebFile -sourceUrl "${scriptPath}SetupDesktop.ps1"      -destinationFile $setupDesktopScript
@@ -166,7 +161,9 @@ Get-WebFile -sourceUrl "${scriptPath}SetupDesktop.ps1"      -destinationFile $se
 # Get-WebFile -sourceUrl "${scriptPath}SetupAAD.ps1"          -destinationFile $setupAadScript
 Get-WebFile -sourceUrl "${scriptPath}SetupVm.ps1"           -destinationFile $setupVmScript
 Get-WebFile -sourceUrl "${scriptPath}SetupStart.ps1"        -destinationFile $setupStartScript
-Get-WebFile -sourceUrl "${scriptPath}RestartContainers.ps1" -destinationFile "c:\demo\restartContainers.ps1"
+Get-WebFile -sourceUrl "${scriptPath}additional-install.ps1"        -destinationFile $additionalInstall
+# Get-WebFile -sourceUrl "${scriptPath}RestartContainers.ps1" -destinationFile "c:\demo\restartContainers.ps1"
+Get-WebFile -sourceUrl "${scriptPath}CreateAzureDevOpsAgent.ps1"      -destinationFile $CreateAzureDevOpsAgent
 
 if ($finalSetupScriptUrl) {
     $finalSetupScript = "c:\demo\FinalSetupScript.ps1"
@@ -214,6 +211,7 @@ else {
     Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V, Containers -All -NoRestart | Out-Null
 }
 
+Log "Creating task before restart"
 $startupAction = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy UnRestricted -File $setupStartScript"
 $startupTrigger = New-ScheduledTaskTrigger -AtStartup
 $startupTrigger.Delay = "PT1M"

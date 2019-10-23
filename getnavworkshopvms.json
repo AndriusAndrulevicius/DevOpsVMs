@@ -12,7 +12,7 @@
         },
         "TimezoneId": {
             "type": "string",
-            "defaultValue": "GMT Standard Time",
+            "defaultValue": "FLE Standard Time",
             "allowedValues": [
                 "Dateline Standard Time",
                 "UTC-11",
@@ -189,7 +189,7 @@
         },
         "vmSize": {
             "type": "string",
-            "defaultValue": "Standard_D2_v3",
+            "defaultValue": "Standard_D11_v2",
             "allowedValues": [
                 "Standard_D2_v2",
                 "Standard_D3_v2",
@@ -206,6 +206,7 @@
                 "Standard_D2s_v3",
                 "Standard_D4s_v3",
                 "Standard_D8s_v3",
+                "Standard_D11_v2",
                 "Standard_D16s_v3"
             ],
             "metadata": {
@@ -296,10 +297,29 @@
             "metadata": {
                 "Description": "Run Windows Update after Deployment (might take significant time)"
             }
-        }
+        },
+        "AutoShutdown": {
+            "type": "string",
+            "defaultValue": "Enabled",
+            "allowedValues": [
+                "Enabled",
+                "Disabled"
+            ],
+            "metadata": {
+                "Description": "Specifies whether you want to enable autoshutdown of the VM."
+            }
+        },
+        "AutoShutdownTime": {
+            "type": "string",
+            "defaultValue": "20:00",
+            "metadata": {
+                "Description": "Time of day on which the VM will be auto-shutdown (if enabled)."
+            }
+        },
     },
     "variables": {
         "nchbranch": "",
+        "TimezoneId": "[parameters('TimezoneId')]",
         "RemoteDesktopAccess": "[parameters('RemoteDesktopAccess')]",
         "OperatingSystem": "[parameters('OperatingSystem')]",
         "imagePublisher": "[if(equals(variables('OperatingSystem'),'Windows 10'),'MicrosoftWindowsDesktop','MicrosoftWindowsServer')]",
@@ -319,10 +339,11 @@
         "rdpAddresses": "[if(equals(variables('RemoteDesktopAccess'),'-'),'',variables('RemoteDesktopAccess'))]",
         "rdpSourceAddressPrefix": "[split(variables('rdpAddresses'),variables('delimiters'))]",
         "noOfRdpAddresses": "[length(variables('rdpSourceAddressPrefix'))]",
-        "noOfWinRmAddresses": "[length(variables('winRmSourceAddressPrefix'))]",
         "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
         "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
-        "ScriptCommandToExecute": "powershell.exe -executionpolicy unrestricted -file "
+        "ScriptCommandToExecute": "powershell.exe -executionpolicy unrestricted -file ",
+        "AutoShutdown": "[parameters('AutoShutdown')]",
+        "AutoShutdownTime": "[parameters('AutoShutdownTime')]"
     },
     "resources": [
         {
@@ -605,7 +626,8 @@
                     "adminUsername": "[parameters('vmAdminUsername')]",
                     "adminPassword": "[parameters('adminPassword')]",
                     "windowsConfiguration": {
-                        "provisionVmAgent": "true"
+                        "provisionVmAgent": "true",
+                        "timeZone": "[variables('TimezoneId')]"
                     }
                 },
                 "storageProfile": {
@@ -634,7 +656,30 @@
                     ]
                 }
             },
-            "resources": [],
+            "resources": [
+                {
+                    "apiVersion": "2017-04-26-preview",
+                    "type": "microsoft.devtestlab/schedules",
+                    "name": "[concat('shutdown-computevm-',tolower(parameters('vmName')),string(add(copyIndex(),parameters('offset'))))]",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[concat('Microsoft.Compute/virtualMachines/',tolower(parameters('vmName')),string(add(copyIndex(),parameters('offset'))))]"
+                    ],
+                    "properties": {
+                        "status": "[variables('AutoShutdown')]",
+                        "taskType": "ComputeVmShutdownTask",
+                        "dailyRecurrence": {
+                            "time": "[variables('AutoShutdownTime')]"
+                        },
+                        "timeZoneId": "[variables('TimezoneId')]",
+                        "notificationSettings": {
+                            "status": "Disabled",
+                            "timeInMinutes": 15
+                        },
+                        "targetResourceId": "[resourceId('Microsoft.Compute/virtualMachines',concat(tolower(parameters('vmName')),string(add(copyIndex(),parameters('offset')))))]"
+                    }
+                }
+            ],
             "copy": {
                 "name": "vmcopy",
                 "count": "[parameters('count')]"

@@ -23,10 +23,10 @@ Log "Install Office 365 Business"
 choco install office365business
 
 #Add VSCode Extensions
-"eamodio.gitlens", "ms-vscode.PowerShell", "heaths.vscode-guid", "github.vscode-pull-request-github", "formulahendry.docker-explorer" | % {
-  Log "Install VSCode Extension: $_"
-  code --install-extension $_
-}
+# "eamodio.gitlens", "ms-vscode.PowerShell", "heaths.vscode-guid", "github.vscode-pull-request-github", "formulahendry.docker-explorer" | ForEach-Object {
+#   Log "Install VSCode Extension: $_"
+#   code --install-extension $_
+# }
 
 . "C:\DEMO\Settings.ps1"
 & "C:\Program Files\GIT\bin\git.exe" config --global core.safecrlf false
